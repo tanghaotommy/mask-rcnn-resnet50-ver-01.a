@@ -311,6 +311,7 @@ class MaskHead(nn.Module):
     def __init__(self, cfg, in_channels):
         super(MaskHead, self).__init__()
         self.num_classes = cfg.num_classes
+        self.mask_num_classes = cfg.mask_num_classes
 
 
         self.conv1 = nn.Conv2d( in_channels,256, kernel_size=3, padding=1, stride=1)
@@ -323,7 +324,7 @@ class MaskHead(nn.Module):
         self.bn4   = nn.BatchNorm2d(256)
 
         self.up    = nn.ConvTranspose2d(256,256, kernel_size=4, padding=1, stride=2, bias=False)
-        self.logit = nn.Conv2d( 256, self.num_classes, kernel_size=1, padding=0, stride=1)
+        self.logit = nn.Conv2d( 256, self.num_classes*self.mask_num_classes, kernel_size=1, padding=0, stride=1)
 
     def forward(self, crops):
         x = F.relu(self.bn1(self.conv1(crops)),inplace=True)
@@ -398,6 +399,8 @@ class MaskRcnnNet(nn.Module):
         if len(self.detections)>0:
               mask_crops = self.mask_crop(features, self.detections)
               self.mask_logits = data_parallel(self.mask_head, mask_crops)
+              batch_size, _, h, w = self.mask_logits.size()
+              self.mask_logits = self.mask_logits.view(batch_size, self.cfg.num_classes, self.cfg.mask_num_classes, h, w).contiguous()
               self.masks = mask_nms(cfg, mode, inputs, self.detections, self.mask_logits) #<todo> better nms for mask
 
 

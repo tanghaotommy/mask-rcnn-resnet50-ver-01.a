@@ -6,6 +6,7 @@ from utility.file import *
 from utility.draw import *
 
 from net.lib.box.process import *
+from skimage.segmentation import  find_boundaries
 
 #data reader  ----------------------------------------------------------------
 MIN_SIZE =  6
@@ -219,6 +220,12 @@ def multi_mask_to_annotation(multi_mask):
 
     return box, label, instance
 
+def multi_mask_to_boundaries(multi_mask):
+    boundaries = find_boundaries(multi_mask)
+    contour = find_boundaries(multi_mask == 0)
+    in_between = np.bitwise_xor(contour, boundaries)
+    
+    return in_between
 
 def instance_to_multi_mask(instance):
 

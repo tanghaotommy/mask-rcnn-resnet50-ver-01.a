@@ -16,6 +16,7 @@ class Configuration(object):
 
         #net
         self.num_classes = 2 #include background class
+        self.mask_num_classes = 3
 
         #multi-rpn
         self.rpn_base_sizes         = [ 8, 16, 32, 64, ] #diameter
@@ -60,7 +61,7 @@ class Configuration(object):
         self.rcnn_train_nms_overlap_threshold   = 0.8  # high for more proposals for mask
         self.rcnn_train_nms_min_size = 5
 
-        self.rcnn_test_nms_pre_score_threshold = 0.05
+        self.rcnn_test_nms_pre_score_threshold = 0.1
         self.rcnn_test_nms_overlap_threshold   = 0.5
         self.rcnn_test_nms_min_size = 5
 
@@ -71,7 +72,7 @@ class Configuration(object):
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
-        self.mask_test_nms_pre_score_threshold = 0.05  #self.rpn_test_nms_pre_score_threshold
+        self.mask_test_nms_pre_score_threshold = 0.1  #self.rpn_test_nms_pre_score_threshold
         self.mask_test_nms_overlap_threshold = 0.1
         self.mask_test_mask_threshold  = 0.5
 

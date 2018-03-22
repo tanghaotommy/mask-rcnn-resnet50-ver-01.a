@@ -2,12 +2,12 @@
 ROOT_DIR ='/home/htang6/workspace/mask-rcnn-resnet50-ver-01.a/'
 
 
-split = 'filenames'
+split = 'histological'
 DATA_DIR    = '/home/htang6/workspace/data/dsb2018/stage1_train/'  #'/media/root/5453d6d1-e517-4659-a3a8-d0a878ba4b60/data/kaggle/science2018/data' #
 RESULTS_DIR = ROOT_DIR + 'results'
 
-out_dir  = RESULTS_DIR + '/mask-rcnn-0320'
-initial_checkpoint = RESULTS_DIR + '/mask-rcnn-0320/checkpoint/00008000_model.pth'
+out_dir  = RESULTS_DIR + '/mask-rcnn-0322'
+initial_checkpoint = None #RESULTS_DIR + '/mask-rcnn-0320/checkpoint/00008000_model.pth'
 
 ##---------------------------------------------------------------------
 import os
@@ -63,6 +63,7 @@ import skimage
 import skimage.color
 import skimage.morphology
 from scipy import ndimage
+from dataset.reader import *
 
 
 #---------------------------------------------------------------------------------

@@ -22,7 +22,7 @@ def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1
 
 # mask target ********************************************************************
 #<todo> mask crop should match align kernel (same wait to handle non-integer pixel location (e.g. 23.5, 32.1))
-def crop_instance(instance, box, size, threshold=0.5):
+def crop_instance(instance, in_between, box, size, threshold=0.5):
     H,W = instance.shape
     x0,y0,x1,y1 = np.rint(box).astype(np.int32)
     x0 = max(0,x0)
@@ -44,9 +44,26 @@ def crop_instance(instance, box, size, threshold=0.5):
             y1 = min(H,y1)
 
     #print(x0,y0,x1,y1)
+
     crop = instance[y0:y1+1,x0:x1+1]
+    # print('multimask shape ', multi_mask.shape)
+    # print(instance[0].shape)
+    # print(crop.shape)
+    # print(instance.dtype)
+    # print(multi_mask.dtype)
+    crop = crop.astype(np.float32)
     crop = cv2.resize(crop,(size,size))
-    crop = (crop>threshold).astype(np.float32)
+    crop[crop > threshold] = 1
+
+    bound_crop = in_between[y0:y1+1,x0:x1+1]
+    bound_crop = bound_crop.astype(np.float32)
+    if np.any(bound_crop > 0):
+        bound_crop = cv2.resize(bound_crop,(size,size))
+        bound_crop = bound_crop > threshold
+        crop[bound_crop] = 2
+
+    crop = crop.astype(np.float32)
+
     return crop
 
 
@@ -103,10 +120,15 @@ def make_one_mask_target(cfg, mode, input, proposal, truth_box, truth_label, tru
     sampled_assign   = argmax_overlap[fg_index]
     sampled_label    = truth_label[sampled_assign]
     sampled_instance = []
+
+    multi_mask = instance_to_multi_mask(truth_instance)
+    in_between = multi_mask_to_boundaries(multi_mask)
+
     for i in range(len(fg_index)):
         instance = truth_instance[sampled_assign[i]]
         box  = sampled_proposal[i,1:5]
-        crop = crop_instance(instance, box, cfg.mask_size)
+        # crop = crop_instance(instance, box, cfg.mask_size)
+        crop = crop_instance(instance, in_between, box, cfg.mask_size)
         sampled_instance.append(crop[np.newaxis,:,:])
 
         #<debug>
@@ -138,13 +160,13 @@ def make_mask_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels, tr
     truth_labels    = copy.deepcopy(truth_labels)
     truth_instances = copy.deepcopy(truth_instances)
     batch_size = len(inputs)
+
     for b in range(batch_size):
         index = np.where(truth_labels[b]>0)[0]
         truth_boxes [b] = truth_boxes [b][index]
         truth_labels[b] = truth_labels[b][index]
         truth_instances[b] = truth_instances[b][index]
     #----------------------------------------------------------------------------
-
 
 
     proposals = proposals.cpu().data.numpy()

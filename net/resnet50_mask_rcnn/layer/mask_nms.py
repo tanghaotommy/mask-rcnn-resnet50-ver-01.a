@@ -74,8 +74,12 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
     mask_threshold      = cfg.mask_test_mask_threshold
 
     proposals   = proposals.cpu().data.numpy()
-    mask_logits = mask_logits.cpu().data.numpy()
-    mask_probs  = np_sigmoid(mask_logits)
+    mask_logits = mask_logits.cpu().data
+    # mask_probs  = F.softmax(mask_logits, dim=1)
+    # probs, cls = mask_probs.topk(1, dim=1)
+    # print(cls[0,0,:,:])
+    # print(np.where(cls == 2))
+    # print(probs.size())
 
     masks = []
     batch_size,C,H,W = inputs.size()
@@ -93,10 +97,21 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                 x0,y0,x1,y1 = proposals[i,1:5].astype(np.int32)
                 h, w  = y1-y0+1, x1-x0+1
                 label = int(proposals[i,6])
-                crop  = mask_probs[i, label]
+                m_logits = mask_logits[i,label]
+                mask_probs = F.softmax(m_logits, dim=0)
+                probs, cat = mask_probs.topk(1, dim=0)
+                crop = cat.permute([1,2,0]).numpy()
+                boundary = (crop == 2).astype(np.float32).squeeze()
+                crop = (crop == 1).astype(np.float32).squeeze()
+                # print(np.where(crop==2))
                 crop  = cv2.resize(crop, (w,h), interpolation=cv2.INTER_LINEAR)
                 crop  = crop > mask_threshold
+
+                boundary  = cv2.resize(boundary, (w,h), interpolation=cv2.INTER_LINEAR)
+                crop[boundary > mask_threshold] = 2
+                
                 m[y0:y1+1,x0:x1+1] = crop
+
 
                 instance.append(m)
                 box.append((x0,y0,x1,y1))
