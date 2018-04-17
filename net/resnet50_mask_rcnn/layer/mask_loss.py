@@ -79,7 +79,7 @@ def mask_loss(logits, labels, instances):
     # print('num_background: ', num_background)
     # print('total: ', labels_flat.size())
     # print('labels_flat: ', torch.max(labels_flat), ' ', torch.min(labels_flat))
-    weights = Variable(torch.tensor([1, 1, 2])).cuda()
+    weights = Variable(torch.tensor([1, 1, 3, 1])).cuda()
     loss = F.cross_entropy(logits_flat, labels_flat, size_average=True, weight=weights)
     return loss
 

@@ -16,7 +16,7 @@ class Configuration(object):
 
         #net
         self.num_classes = 2 #include background class
-        self.mask_num_classes = 3
+        self.mask_num_classes = 4
 
         #multi-rpn
         self.rpn_base_sizes         = [ 8, 16, 32, 64, ] #diameter
@@ -37,8 +37,8 @@ class Configuration(object):
         ]
 
 
-        self.rpn_train_bg_thresh_high = 0.5
-        self.rpn_train_fg_thresh_low  = 0.5
+        self.rpn_train_bg_thresh_high = 0.3 # 0.5
+        self.rpn_train_fg_thresh_low  = 0.7 # 0.5
 
         self.rpn_train_nms_pre_score_threshold = 0.7
         self.rpn_train_nms_overlap_threshold   = 0.8  #higher for more proposals for mask training
@@ -61,18 +61,18 @@ class Configuration(object):
         self.rcnn_train_nms_overlap_threshold   = 0.8  # high for more proposals for mask
         self.rcnn_train_nms_min_size = 5
 
-        self.rcnn_test_nms_pre_score_threshold = 0.1
-        self.rcnn_test_nms_overlap_threshold   = 0.5
+        self.rcnn_test_nms_pre_score_threshold = 0.3 # 0.3
+        self.rcnn_test_nms_overlap_threshold   = 0.8 # 0.5
         self.rcnn_test_nms_min_size = 5
 
         #mask
-        self.mask_crop_size            = 14
+        self.mask_crop_size            = 14 
         self.mask_train_batch_size     = 64 #per image
         self.mask_size                 = 28 #per image
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
-        self.mask_test_nms_pre_score_threshold = 0.1  #self.rpn_test_nms_pre_score_threshold
+        self.mask_test_nms_pre_score_threshold = 0.3  #self.rpn_test_nms_pre_score_threshold
         self.mask_test_nms_overlap_threshold = 0.1
         self.mask_test_mask_threshold  = 0.5
 

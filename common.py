@@ -2,12 +2,12 @@
 ROOT_DIR ='/home/htang6/workspace/mask-rcnn-resnet50-ver-01.a/'
 
 
-split = 'histological'
+split = 'balance'
 DATA_DIR    = '/home/htang6/workspace/data/dsb2018/stage1_train/'  #'/media/root/5453d6d1-e517-4659-a3a8-d0a878ba4b60/data/kaggle/science2018/data' #
 RESULTS_DIR = ROOT_DIR + 'results'
 
-out_dir  = RESULTS_DIR + '/mask-rcnn-0322'
-initial_checkpoint = None #RESULTS_DIR + '/mask-rcnn-0320/checkpoint/00008000_model.pth'
+out_dir  = RESULTS_DIR + '/mask-rcnn-0410'
+initial_checkpoint = RESULTS_DIR + '/mask-rcnn-0410/checkpoint/00040000_model.pth'
 
 ##---------------------------------------------------------------------
 import os
@@ -65,6 +65,9 @@ import skimage.morphology
 from scipy import ndimage
 from dataset.reader import *
 
+from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage.filters import gaussian_filter
+from random import randint
 
 #---------------------------------------------------------------------------------
 # https://stackoverflow.com/questions/34968722/how-to-implement-the-softmax-function-in-python

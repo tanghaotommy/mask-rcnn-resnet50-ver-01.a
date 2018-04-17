@@ -1,7 +1,8 @@
 from common import *
 from net.lib.box.process import*
 from utility.draw import *
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 
 
@@ -92,7 +93,7 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
             instance=[]
             box=[]
             for i in index:
-                m = np.zeros((H,W),np.bool)
+                m = np.zeros((H,W),np.int8)
 
                 x0,y0,x1,y1 = proposals[i,1:5].astype(np.int32)
                 h, w  = y1-y0+1, x1-x0+1
@@ -101,16 +102,33 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                 mask_probs = F.softmax(m_logits, dim=0)
                 probs, cat = mask_probs.topk(1, dim=0)
                 crop = cat.permute([1,2,0]).numpy()
+
+                # mask_probs = mask_probs.permute([1,2,0]).numpy()
+                # contour = mask_probs[:,:,3] > 0.5
+                # crop = mask_probs[:,:,1] > 0.2
+                # boundary = mask_probs[:,:,2] > 0.5
+                # crop = crop.astype(np.float32)
+                # boundary = boundary.astype(np.float32)
+                # contour = contour.astype(np.float32)
+
+
+                contour = (crop == 3).astype(np.float32).squeeze()
                 boundary = (crop == 2).astype(np.float32).squeeze()
                 crop = (crop == 1).astype(np.float32).squeeze()
-                # print(np.where(crop==2))
+                
                 crop  = cv2.resize(crop, (w,h), interpolation=cv2.INTER_LINEAR)
                 crop  = crop > mask_threshold
 
                 boundary  = cv2.resize(boundary, (w,h), interpolation=cv2.INTER_LINEAR)
-                crop[boundary > mask_threshold] = 2
+                contour  = cv2.resize(contour, (w,h), interpolation=cv2.INTER_LINEAR)
+                res = (contour > mask_threshold).astype(np.int8)
+
+                res[res == 1] = 3
+                res[crop > mask_threshold] = 1
+                res[boundary > mask_threshold] = 2
+                # crop[crop==2] = 1
                 
-                m[y0:y1+1,x0:x1+1] = crop
+                m[y0:y1+1,x0:x1+1] = res
 
 
                 instance.append(m)
@@ -128,11 +146,13 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                     cv2.waitKey(1)
 
                 #<debug>----------------------------------------------
-            instance = np.array(instance,np.bool)
+            instance = np.array(instance)
             box      = np.array(box, np.float32)
 
             #compute overlap
             box_overlap = cython_box_overlap(box, box)
+
+            # instance[instance == 3] = 1
 
             L = len(index)
             instance_overlap = np.zeros((L,L),np.float32)
@@ -146,8 +166,8 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                     x1 = int(max(box[i,2],box[j,2]))
                     y1 = int(max(box[i,3],box[j,3]))
 
-                    intersection = (instance[i,y0:y1,x0:x1] & instance[j,y0:y1,x0:x1]).sum()
-                    area = (instance[i,y0:y1,x0:x1] | instance[j,y0:y1,x0:x1]).sum()
+                    intersection = ((instance == 1)[i,y0:y1,x0:x1] & (instance == 1)[j,y0:y1,x0:x1]).sum()
+                    area = ((instance == 1)[i,y0:y1,x0:x1] | (instance == 1)[j,y0:y1,x0:x1]).sum()
                     instance_overlap[i,j] = intersection/(area + 1e-12)
                     instance_overlap[j,i] = instance_overlap[i,j]
 
@@ -161,12 +181,60 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                 i = index[0]
                 keep.append(i)
                 delete_index = list(np.where(instance_overlap[i] > overlap_threshold)[0])
+
+                if 0:
+                    keep_crop = instance[i]
+                    keep_box = box[i].astype(np.int32)
+                    x0, y0, x1, y1 = keep_box[0], keep_box[1], keep_box[2], keep_box[3]
+                    print('Keeped instance: ')
+                    plt.subplot(1,3,1)
+                    plt.imshow(keep_crop[y0:y1+1,x0:x1+1])
+
+                    img = inputs.cpu()[0].numpy()
+                    img = img
+                    img = np.moveaxis(img, 0, -1)
+
+                    plt.subplot(1,3,2)
+                    plt.imshow(img[y0:y1+1,x0:x1+1,:])
+
+                    ax = plt.subplot(1,3,3)
+                    plt.imshow(img)
+                    rect = patches.Rectangle((x0,y0),x1-x0,y1-y0,linewidth=1,edgecolor='r',facecolor='none')
+                    ax.add_patch(rect)
+
+                    plt.show()
+
+                    print('Deleted instance: ')
+
+                    for j in delete_index:
+                        if i == j:
+                            continue
+                        delete_crop = instance[j]
+                        delete_box = box[j].astype(np.int32)
+                        # print(delete_box)
+                        x0, y0, x1, y1 = delete_box[0], delete_box[1], delete_box[2], delete_box[3]
+                        plt.subplot(1,3,1)
+                        plt.imshow(delete_crop[y0:y1+1,x0:x1+1])
+
+                        img = inputs.cpu()[0].numpy()
+                        img = img
+                        img = np.moveaxis(img, 0, -1)
+                        plt.subplot(1,3,2)
+                        plt.imshow(img[y0:y1+1,x0:x1+1,:])
+
+                        ax = plt.subplot(1,3,3)
+                        plt.imshow(img)
+                        rect = patches.Rectangle((x0,y0),x1-x0,y1-y0,linewidth=1,edgecolor='r',facecolor='none')
+                        ax.add_patch(rect)
+
+                        plt.show()
+
                 index =  [e for e in index if e not in delete_index]
                 
                 #<todo> : merge?
 
             for i,k in enumerate(keep):
-                mask[np.where(instance[k])] = i+1
+                mask[np.where(instance[k] == 1)] = i+1
 
 
         masks.append(mask)

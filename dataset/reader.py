@@ -9,11 +9,16 @@ from net.lib.box.process import *
 from skimage.segmentation import  find_boundaries
 
 #data reader  ----------------------------------------------------------------
-MIN_SIZE =  6
+MIN_SIZE =  5
+
 MAX_SIZE =  128  #np.inf
-IGNORE_BOUNDARY = -1
-IGNORE_SMALL    = -2
-IGNORE_BIG      = -3
+IGNORE_BOUNDARY = 1
+IGNORE_SMALL    = 1
+IGNORE_BIG      = 1
+# MAX_SIZE =  128  #np.inf
+# IGNORE_BOUNDARY = -1
+# IGNORE_SMALL    = -2
+# IGNORE_BIG      = -3
 
 class ScienceDataset(Dataset):
 
@@ -66,8 +71,10 @@ class ScienceDataset(Dataset):
         name = self.filenames[image_id]
         
         imgs = os.listdir(os.path.join(data_dir, name, 'images'))
-        img = plt.imread(os.path.join(data_dir, name, 'images', '%s' % (imgs[0])))
-        img = img[:,:,:3]
+        img = cv2.imread(os.path.join(data_dir, name, 'images', '%s' % (imgs[0])))
+        img = np.array(img)
+        # img = img[:,:,:3] * 255
+        # img = img.astype(np.int32)
         return img
 
     def load_mask(self, image_id):
@@ -79,6 +86,9 @@ class ScienceDataset(Dataset):
         masks = []
         for i in range(len(mask_files)):
             mask = plt.imread(os.path.join(data_dir, name, 'masks', '%s' % (mask_files[i])))
+            if len(mask.shape) > 2:
+                # print(name, '+', mask_files[i], '+', mask.shape)
+                mask = mask[:,:,0]
             masks.append(mask)
 
         multi_mask = instance_to_multi_mask(masks)
@@ -228,7 +238,6 @@ def multi_mask_to_boundaries(multi_mask):
     return in_between
 
 def instance_to_multi_mask(instance):
-
     H,W = instance[0].shape[:2]
     multi_mask = np.zeros((H,W),np.int32)
 

@@ -16,6 +16,8 @@ WIDTH, HEIGHT = 256,256
 
 from net.resnet50_mask_rcnn.draw  import *
 from net.resnet50_mask_rcnn.model import *
+from augmentation import color_seq
+
 # -------------------------------------------------------------------------------------
 
 # Define parser
@@ -72,60 +74,69 @@ parser.add_argument('--checkpoint', required=False,
 #     return input, box, label, instance, meta, index
 
 
-def normalize(input):
+def normalize(image):
     # input = input.numpy()
     # min = np.min(input)
     # max = np.max(input)
     # input = (input - min) / (max - min)
     # input = torch.from_numpy(input).float()
-    return (input - 0.5) / 0.5
+    return scale_image_canals(image)
 
 def train_augment(image, multi_mask, meta, index):
     #<todo> do not resize small unclei!, aspect stretch
-    # image, multi_mask = random_shift_scale_rotate_transform2(image, multi_mask,
-    #                                      shift_limit=[0, 0], scale_limit=[0.9, 1.2],
-    #                                      rotate_limit=[-15, 15],)
+    image, multi_mask = random_shift_scale_rotate_transform2( image, multi_mask,
+                        shift_limit=[0,0], scale_limit=[1/2,2],
+                        rotate_limit=[-45,45], borderMode=cv2.BORDER_REFLECT_101, u=0.5) #borderMode=cv2.BORDER_CONSTANT
 
-    bboxes, _, _ = multi_mask_to_annotation(multi_mask)
-    # image, multi_mask = random_crop_transform2(image, multi_mask, WIDTH, HEIGHT)
-    image, multi_mask = random_one_crop_transform(image, bboxes, multi_mask, WIDTH, HEIGHT)
+    # overlay = multi_mask_to_color_overlay(multi_mask,color='cool')
+    # overlay1 = multi_mask_to_color_overlay(multi_mask1,color='cool')
+    # image_show('overlay',overlay)
+    # image_show('overlay1',overlay1)
+    # cv2.waitKey(0)
+
+    image, multi_mask = random_crop_transform2(image, multi_mask, WIDTH, HEIGHT, u=0.5)
+    
+    image = normalize(image)
+    image = np.expand_dims(image, axis=0)
+    image = color_seq.augment_images(image)
+    image = np.squeeze(image)
+    
+    #image, multi_mask = random_one_crop_transform(image, bboxes, multi_mask, WIDTH, HEIGHT)
     image, multi_mask = random_horizontal_flip_transform2(image, multi_mask, 0.5)
     image, multi_mask = random_vertical_flip_transform2(image, multi_mask, 0.5)
     image, multi_mask = random_rotate90_transform2(image, multi_mask, 0.5)
-
-    # image = random_brightness_shift_transform(image, limit=[0.2,0.5], u=0.5)
-    # image = random_contrast_transform(image, limit=[0.5,1.5], u=0.5)
-    # image = random_noise_transform(image, limit=[0, 0.3], u=0.5)
+    ##image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
 
     #---------------------------------------
+    input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
     box, label, instance  = multi_mask_to_annotation(multi_mask)
-    if label is None:
-        print('[train_augment] Warning: No mask in this crop, trying another crop...')
-
-    input = image.transpose((2,0,1))
-    input = torch.from_numpy(input).float()
-    input = normalize(input)
-
 
     return input, box, label, instance, meta, index
 
 
-
 def valid_augment(image, multi_mask, meta, index):
-    # image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
-    bboxes, _, _ = multi_mask_to_annotation(multi_mask)
-    # image, multi_mask = random_crop_transform2(image, multi_mask, WIDTH, HEIGHT)
-    image, multi_mask = random_one_crop_transform(image, bboxes, multi_mask, WIDTH, HEIGHT, rand=False)
+    # # image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
+    # bboxes, _, _ = multi_mask_to_annotation(multi_mask)
+    # # image, multi_mask = random_crop_transform2(image, multi_mask, WIDTH, HEIGHT)
+    # image, multi_mask = random_one_crop_transform(image, bboxes, multi_mask, WIDTH, HEIGHT, rand=False)
+
+    # #---------------------------------------
+    # box, label, instance  = multi_mask_to_annotation(multi_mask)
+
+    # if label is None:
+    #     print('[valid_augment] Warning: No mask in this crop, id %d %s' % (index))
+
+    # # image = normalize(image)
+    # input = image.transpose((2,0,1))
+    # input = torch.from_numpy(input).float().div(255)
+
+    # return input, box, label, instance, meta, index
+    image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
+    image = scale_image_canals(image)
 
     #---------------------------------------
+    input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
     box, label, instance  = multi_mask_to_annotation(multi_mask)
-
-    if label is None:
-        print('[valid_augment] Warning: No mask in this crop, id %d %s' % (index))
-
-    input = image.transpose((2,0,1))
-    input = torch.from_numpy(input).float()
-    input = normalize(input)
 
     return input, box, label, instance, meta, index
 

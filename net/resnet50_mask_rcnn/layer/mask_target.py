@@ -55,6 +55,12 @@ def crop_instance(instance, in_between, box, size, threshold=0.5):
     crop = cv2.resize(crop,(size,size))
     crop[crop > threshold] = 1
 
+    # Use dilation to get bigger contour
+    kernel = np.ones((5,5),np.uint8)
+    dilation = cv2.dilate(crop, kernel,iterations = 1)
+    contour = dilation - crop
+
+    crop[contour > threshold] = 3
     bound_crop = in_between[y0:y1+1,x0:x1+1]
     bound_crop = bound_crop.astype(np.float32)
     if np.any(bound_crop > 0):

@@ -401,7 +401,8 @@ class MaskRcnnNet(nn.Module):
               self.mask_logits = data_parallel(self.mask_head, mask_crops)
               batch_size, _, h, w = self.mask_logits.size()
               self.mask_logits = self.mask_logits.view(batch_size, self.cfg.num_classes, self.cfg.mask_num_classes, h, w).contiguous()
-              self.masks = mask_nms(cfg, mode, inputs, self.detections, self.mask_logits) #<todo> better nms for mask
+              if mode in ['valid', 'test', 'eval']:
+                  self.masks = mask_nms(cfg, mode, inputs, self.detections, self.mask_logits) #<todo> better nms for mask
 
 
     def loss(self, inputs, truth_boxes, truth_labels, truth_instances):

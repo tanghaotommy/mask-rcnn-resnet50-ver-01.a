@@ -50,11 +50,10 @@ def revert(net, images):
 
 
 def eval_augment(image, multi_mask, meta, index):
-
+    # image = normalize(image)
     pad_image = pad_to_factor(image, factor=16)
     input = torch.from_numpy(pad_image.transpose((2,0,1))).float()
     box, label, instance  = multi_mask_to_annotation(multi_mask)
-    input = normalize(input)
 
     return input, box, label, instance, meta, image, index
 

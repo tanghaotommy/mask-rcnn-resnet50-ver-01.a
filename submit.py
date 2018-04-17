@@ -135,9 +135,9 @@ def revert(net, images):
 
 #-----------------------------------------------------------------------------------
 def submit_augment(image, index):
+    image = normalize(image)
     pad_image = pad_to_factor(image, factor=16)
-    input = torch.from_numpy(pad_image.transpose((2,0,1))).float()
-    input = normalize(input)
+    input = torch.from_numpy(pad_image.transpose((2,0,1))).float().div(255)
     return input, image, index
 
 
