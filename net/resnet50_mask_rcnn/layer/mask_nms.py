@@ -103,32 +103,20 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                 probs, cat = mask_probs.topk(1, dim=0)
                 crop = cat.permute([1,2,0]).numpy()
 
-                # mask_probs = mask_probs.permute([1,2,0]).numpy()
-                # contour = mask_probs[:,:,3] > 0.5
-                # crop = mask_probs[:,:,1] > 0.2
-                # boundary = mask_probs[:,:,2] > 0.5
-                # crop = crop.astype(np.float32)
-                # boundary = boundary.astype(np.float32)
-                # contour = contour.astype(np.float32)
-
-
-                contour = (crop == 3).astype(np.float32).squeeze()
-                boundary = (crop == 2).astype(np.float32).squeeze()
-                crop = (crop == 1).astype(np.float32).squeeze()
+                mask_probs = mask_probs.permute([1,2,0]).numpy()
+                crop = crop.astype(np.float32)
+                boundary = (crop == 2).astype(np.float32)
                 
                 crop  = cv2.resize(crop, (w,h), interpolation=cv2.INTER_LINEAR)
                 crop  = crop > mask_threshold
 
                 boundary  = cv2.resize(boundary, (w,h), interpolation=cv2.INTER_LINEAR)
-                contour  = cv2.resize(contour, (w,h), interpolation=cv2.INTER_LINEAR)
-                res = (contour > mask_threshold).astype(np.int8)
+                crop = (crop > mask_threshold).astype(np.int8)
 
-                res[res == 1] = 3
-                res[crop > mask_threshold] = 1
-                res[boundary > mask_threshold] = 2
+                crop[boundary > mask_threshold] = 2
                 # crop[crop==2] = 1
                 
-                m[y0:y1+1,x0:x1+1] = res
+                m[y0:y1+1,x0:x1+1] = crop
 
 
                 instance.append(m)
@@ -182,13 +170,14 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                 keep.append(i)
                 delete_index = list(np.where(instance_overlap[i] > overlap_threshold)[0])
 
-                if 0:
+                if 1:
                     keep_crop = instance[i]
                     keep_box = box[i].astype(np.int32)
                     x0, y0, x1, y1 = keep_box[0], keep_box[1], keep_box[2], keep_box[3]
                     print('Keeped instance: ')
                     plt.subplot(1,3,1)
                     plt.imshow(keep_crop[y0:y1+1,x0:x1+1])
+                    plt.colorbar()
 
                     img = inputs.cpu()[0].numpy()
                     img = img
@@ -215,6 +204,7 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                         x0, y0, x1, y1 = delete_box[0], delete_box[1], delete_box[2], delete_box[3]
                         plt.subplot(1,3,1)
                         plt.imshow(delete_crop[y0:y1+1,x0:x1+1])
+                        plt.colorbar()
 
                         img = inputs.cpu()[0].numpy()
                         img = img

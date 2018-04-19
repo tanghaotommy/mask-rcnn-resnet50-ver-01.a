@@ -16,7 +16,7 @@ class Configuration(object):
 
         #net
         self.num_classes = 2 #include background class
-        self.mask_num_classes = 4
+        self.mask_num_classes = 3
 
         #multi-rpn
         self.rpn_base_sizes         = [ 8, 16, 32, 64, ] #diameter
