@@ -60,7 +60,7 @@ def crop_instance(instance, in_between, box, size, threshold=0.5):
     dilation = cv2.dilate(crop, kernel,iterations = 1)
     contour = dilation - crop
 
-    crop[contour > threshold] = 3
+    # crop[contour > threshold] = 3
     bound_crop = in_between[y0:y1+1,x0:x1+1]
     bound_crop = bound_crop.astype(np.float32)
     if np.any(bound_crop > 0):

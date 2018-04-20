@@ -170,7 +170,7 @@ def mask_nms( cfg, mode, inputs, proposals, mask_logits):
                 keep.append(i)
                 delete_index = list(np.where(instance_overlap[i] > overlap_threshold)[0])
 
-                if 1:
+                if 0:
                     keep_crop = instance[i]
                     keep_box = box[i].astype(np.int32)
                     x0, y0, x1, y1 = keep_box[0], keep_box[1], keep_box[2], keep_box[3]
